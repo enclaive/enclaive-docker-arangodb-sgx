@@ -1,0 +1,70 @@
+loader.entrypoint = "file:{{ gramine.libos }}"
+
+libos.entrypoint = "/app/bin/arangod"
+loader.argv_src_file = "file:/app/argv"
+
+loader.log_level = "error"
+#loader.log_file = "log.txt"
+
+loader.env.LD_LIBRARY_PATH = "/lib:{{ arch_libdir }}"
+
+loader.env.MALLOC_ARENA_MAX = "1"
+loader.env.GLIBCXX_FORCE_NEW = "1"
+
+loader.env.ARANGODB_OVERRIDE_CRASH_HANDLER = "off"
+
+loader.uid = {{ app_uid }}
+loader.gid = {{ app_gid }}
+
+sys.stack.size = "8M"
+#sys.insecure__allow_eventfd = true
+
+fs.mounts = [
+    { path = "/tmp",              uri = "file:/tmp", type = "tmpfs" },
+    { path = "/etc",              uri = "file:/etc" },
+    { path = "/usr",              uri = "file:/usr" },
+    { path = "/lib",              uri = "file:{{ gramine.runtimedir() }}" },
+    { path = "{{ arch_libdir }}", uri = "file:{{ arch_libdir }}" },
+    { path = "/app",              uri = "file:/app" },
+
+    { path = "/var/lib/arangodb3",      uri = "file:/data", type = "encrypted", key_name = "data" },
+    { path = "/var/lib/arangodb3-apps", uri = "file:/apps", type = "encrypted", key_name = "apps" },
+    { path = "/var/log/arangodb3",      uri = "file:/logs", type = "encrypted", key_name = "logs" },
+]
+fs.insecure__keys.data = "ffeeddccbbaa99887766554433221100"
+fs.insecure__keys.apps = "7766554433221100ffeeddccbbaa9988"
+fs.insecure__keys.logs = "00112233445566778899aabbccddeeff"
+
+sgx.thread_num = 64
+sgx.enclave_size = "2G"
+
+sgx.debug = false
+sgx.isvprodid = 1
+sgx.isvsvn    = 1
+
+sgx.trusted_files = [
+    "file:{{ gramine.libos }}",
+    "file:{{ gramine.runtimedir() }}/",
+    "file:{{ arch_libdir }}/",
+
+    "file:/app/argv",
+    "file:/app/bin/arangod",
+    "file:/app/arangod.conf",
+    "file:/app/share/arangodb3/",
+
+    "file:/usr/lib/ssl/openssl.cnf",
+
+    "file:/etc/machine-id",
+
+    "file:/etc/group",
+    "file:/etc/passwd",
+
+    "file:/etc/gai.conf",
+    "file:/etc/nsswitch.conf",
+]
+
+sgx.allowed_files = [
+    "file:/etc/host.conf",
+    "file:/etc/hosts",
+    "file:/etc/resolv.conf",
+]

@@ -1,0 +1,124 @@
+diff --git a/3rdParty/date/CMakeLists.txt b/3rdParty/date/CMakeLists.txt
+index dc745ce3c..38f630fff 100644
+--- a/3rdParty/date/CMakeLists.txt
++++ b/3rdParty/date/CMakeLists.txt
+@@ -6,7 +6,7 @@ find_package( Threads REQUIRED )
+ 
+ enable_testing( )
+ 
+-option( USE_SYSTEM_TZ_DB "Use the operating system's timezone database" OFF )
++option( USE_SYSTEM_TZ_DB "Use the operating system's timezone database" ON )
+ option( USE_TZ_DB_IN_DOT "Save the timezone database in the current folder" OFF )
+ option( BUILD_TZ_STATIC  "Build a static version of library" ON )
+ 
+diff --git a/lib/Basics/files.cpp b/lib/Basics/files.cpp
+index 4da635b38..a77331c3b 100644
+--- a/lib/Basics/files.cpp
++++ b/lib/Basics/files.cpp
+@@ -1822,48 +1822,6 @@ std::string TRI_GetInstallRoot(std::string const& binaryPath,
+ static bool CopyFileContents(int srcFD, int dstFD, TRI_read_t fileSize,
+                              std::string& error) {
+   bool rc = true;
+-#ifdef __linux__
+-  // Linux-specific file-copying code based on splice()
+-  // The splice() system call first appeared in Linux 2.6.17; library support
+-  // was added to glibc in version 2.5. libmusl also has bindings for it. so we
+-  // simply assume it is there on Linux.
+-  int splicePipe[2];
+-  ssize_t pipeSize = 0;
+-  long chunkSendRemain = fileSize;
+-  loff_t totalSentAlready = 0;
+-
+-  if (pipe(splicePipe) != 0) {
+-    error = std::string("splice failed to create pipes: ") + strerror(errno);
+-    return false;
+-  }
+-  try {
+-    while (chunkSendRemain > 0) {
+-      if (pipeSize == 0) {
+-        pipeSize = splice(srcFD, &totalSentAlready, splicePipe[1], nullptr,
+-                          chunkSendRemain, SPLICE_F_MOVE);
+-        if (pipeSize == -1) {
+-          error = std::string("splice read failed: ") + strerror(errno);
+-          rc = false;
+-          break;
+-        }
+-      }
+-      ssize_t sent = splice(splicePipe[0], nullptr, dstFD, nullptr, pipeSize,
+-                            SPLICE_F_MORE | SPLICE_F_MOVE | SPLICE_F_NONBLOCK);
+-      if (sent == -1) {
+-        error = std::string("splice read failed: ") + strerror(errno);
+-        rc = false;
+-        break;
+-      }
+-      pipeSize -= sent;
+-      chunkSendRemain -= sent;
+-    }
+-  } catch (...) {
+-    // make sure we always close the pipes
+-    rc = false;
+-  }
+-  close(splicePipe[0]);
+-  close(splicePipe[1]);
+-#else
+   // 128k:
+   constexpr size_t C128 = 128 * 1024;
+   char* buf = static_cast<char*>(TRI_Allocate(C128));
+@@ -1918,7 +1876,6 @@ static bool CopyFileContents(int srcFD, int dstFD, TRI_read_t fileSize,
+   }
+ 
+   TRI_Free(buf);
+-#endif
+   return rc;
+ }
+ 
+@@ -1971,10 +1928,6 @@ bool TRI_CopyFile(std::string const& src, std::string const& dst,
+       // only copy non-empty files
+       rc = CopyFileContents(srcFD, dstFD, dsize, error);
+     }
+-    timeval times[2];
+-    memset(times, 0, sizeof(times));
+-    times[0].tv_sec = TRI_STAT_ATIME_SEC(*statbuf);
+-    times[1].tv_sec = TRI_STAT_MTIME_SEC(*statbuf);
+ 
+     if (fchown(dstFD, -1 /*statbuf.st_uid*/, statbuf->st_gid) != 0) {
+       error = std::string("failed to chown ") + dst + ": " + strerror(errno);
+@@ -1984,20 +1937,6 @@ bool TRI_CopyFile(std::string const& src, std::string const& dst,
+       error = std::string("failed to chmod ") + dst + ": " + strerror(errno);
+       rc = false;
+     }
+-
+-#ifdef HAVE_FUTIMES
+-    if (futimes(dstFD, times) != 0) {
+-      error =
+-          std::string("failed to adjust age: ") + dst + ": " + strerror(errno);
+-      rc = false;
+-    }
+-#else
+-    if (utimes(dst.c_str(), times) != 0) {
+-      error =
+-          std::string("failed to adjust age: ") + dst + ": " + strerror(errno);
+-      rc = false;
+-    }
+-#endif
+   } catch (...) {
+     // make sure we always close file handles
+     rc = false;
+@@ -2029,17 +1968,6 @@ bool TRI_CopyAttributes(std::string const& srcItem, std::string const& dstItem,
+     return false;
+   }
+ 
+-  timeval times[2];
+-  memset(times, 0, sizeof(times));
+-  times[0].tv_sec = TRI_STAT_ATIME_SEC(statbuf);
+-  times[1].tv_sec = TRI_STAT_MTIME_SEC(statbuf);
+-
+-  if (utimes(dstItem.c_str(), times) != 0) {
+-    error = std::string("failed to adjust age: ") + dstItem + ": " +
+-            strerror(errno);
+-    return false;
+-  }
+-
+ #endif
+   return true;
+ }
