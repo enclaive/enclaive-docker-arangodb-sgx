@@ -10,7 +10,7 @@ docker-compose up
 
 ## Connecting
 
-Use `arangosh` to connect to `hostname:8529` or use the web interface on the same address. No authentication is required for the shell as this a demo setup, a user account has to be created before logging in to the web interface.
+Use `arangosh` to connect to `hostname:8529` or use the web interface on the same address. No authentication is required as this a demo setup. Login as `root` with an empty password on the web interface.
 
 ## Notes
 
