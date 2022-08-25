@@ -1,0 +1,38 @@
+version: '2'
+
+services:
+
+  demo:
+    image: demo/arangodb:latest
+    build: .
+    volumes:
+      - "./data.json:/data.json"
+      - "data:/vanilla/data/"
+      - "logs:/vanilla/logs/"
+      - "sgx-data:/sgx/data/"
+      - "sgx-logs:/sgx/logs/"
+    entrypoint: tail -f /dev/null
+
+  vanilla:
+    image: demo/arangodb:latest
+    build: .
+    volumes:
+      - "data:/var/lib/arangodb3/"
+      - "logs:/var/log/arangodb3/"
+
+  sgx:
+    image: enclaive/arangodb-sgx:latest
+    devices:
+      - "/dev/sgx/enclave:/dev/sgx/enclave"
+      - "/dev/sgx/enclave:/dev/sgx_enclave"
+      - "/dev/sgx_provision:/dev/sgx_provision"
+    volumes:
+      - "./entrypoint.sh:/app/entrypoint.sh"
+      - "sgx-data:/data/"
+      - "sgx-logs:/logs/"
+
+volumes:
+  data:
+  logs:
+  sgx-data:
+  sgx-logs:
