@@ -16,14 +16,14 @@ docker-compose exec demo bash
 
 ```bash
 # first
-fswatch -artux /sgx/data/
-fswatch -artux /vanilla/data/
+fswatch -artux --event=Updated /vanilla/data/
+fswatch -artux --event=Updated /sgx/data/
 
 # second
-arangosh --server.endpoint tcp://sgx:8529
+arangosh --server.endpoint tcp://vanilla:8529
 > db._create("testDb");
 
-arangosh --server.endpoint tcp://vanilla:8529
+arangosh --server.endpoint tcp://sgx:8529
 > db._create("testDb");
 ```
 
@@ -33,12 +33,12 @@ We can now watch the file as we import our data:
 
 ```bash
 # first
-tail -q -c 0 -f /sgx/data/engine-rocksdb/journals/*.log     | strings
 tail -q -c 0 -f /vanilla/data/engine-rocksdb/journals/*.log | strings
+tail -q -c 0 -f /sgx/data/engine-rocksdb/journals/*.log     | strings
 
 # second
-arangoimport --server.endpoint tcp://sgx:8529     --collection users --create-collection true --file data.json
 arangoimport --server.endpoint tcp://vanilla:8529 --collection users --create-collection true --file data.json
+arangoimport --server.endpoint tcp://sgx:8529     --collection users --create-collection true --file data.json
 ```
 
 Instead of `strings` we also could use `xxd -c 64`, but it is sometimes harder to find our imported data due to other things also written to this log.
