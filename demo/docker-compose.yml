@@ -7,6 +7,8 @@ services:
     build: .
     volumes:
       - "./data.json:/data.json"
+      - "./arangosh.conf:/etc/arangodb3/arangosh.conf"
+      - "./arangoimport.conf:/etc/arangodb3/arangoimport.conf"
       - "data:/vanilla/data/"
       - "logs:/vanilla/logs/"
       - "sgx-data:/sgx/data/"
